@@ -25,7 +25,7 @@ fn main() {
   println!("{}", subnet); // outputs: ba3d
   
   // Or compute an IPv6 address
-  let ip = match ipgen::ip("App 1", "fd52:f6b0:3162::/48").unwrap();
+  let ip = ipgen::ip("App 1", "fd52:f6b0:3162::/48").unwrap();
   println!("{}", ip); // outputs: fd52:f6b0:3162:46a1:2a4f:89e8:8aed:1327
 }
 ```
