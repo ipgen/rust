@@ -1,3 +1,10 @@
+//! Official implementation of the IPGen Spec
+//!
+//! This library is the official reference implementation
+//! of the IPGen Spec for generating unique and reproducible
+//! IPv4 and IPv6 addresses.
+//!
+//! It exposes only two simple functions `ip` and `subnet`.
 extern crate crypto;
 extern crate ipnetwork;
 
@@ -9,8 +16,8 @@ use ipnetwork::{Ipv4Network, Ipv6Network};
 
 /// Generates an IPv6 address
 ///
-/// `ip6gen` takes any string and a unique IPv6 local address
-/// prefix eg `fd52:f6b0:3162::/64` and computes a unique IP address.
+/// Takes any string and a IPv4 or IPv6 network local address
+/// eg `fd52:f6b0:3162::/64` or `10.0.0.0/8` and computes a unique IP address.
 pub fn ip(name: &str, cidr: &str) -> Result<IpAddr, String> {
     let ip_addr = match IpAddr::from_str(cidr.split("/").collect::<Vec<&str>>()[0]).map_err(|err| err.to_string()) {
         Ok(ip_addr) => ip_addr,
@@ -65,6 +72,7 @@ pub fn ip(name: &str, cidr: &str) -> Result<IpAddr, String> {
     };
 }
 
+// Generates an IPv6 address from an IPv6 network
 fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr, String> {
     // If we divide the prefix by 4 we will get the total number
     // of characters that we must never touch.
@@ -113,7 +121,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr, String> {
         .map_err(|err| format!("generated IPv6 address ({}) has {}", ip, err))
 }
 
-// Calculate a hash for the subnet
+/// Calculates returns a subnet ID for any identifier
 pub fn subnet(name: &str) -> String {
     hash(name, 2)
 }
