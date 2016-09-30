@@ -24,6 +24,10 @@ pub fn ip(name: &str, cidr: &str) -> Result<Ipv6Addr, String> {
         }
         Err(msg) => return Err(msg),
     };
+    ip6(name, net)
+}
+
+fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr, String> {
     // If we divide the prefix by 4 we will get the total number
     // of characters that we must never touch.
     let network_len = net.prefix() as usize / 4;
