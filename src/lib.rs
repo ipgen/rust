@@ -94,19 +94,12 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr, String> {
     //   gives us the number of characters we need to generate.
     let address_len = 32 - network_len;
     // Blake2b generates hashes in multiples of 2 so we need to divide
-    // the total number of characters we need by 2. Sadly this means we
-    // can't always fully utilise the address space we need to fill.
-    let hash_is_bigger = address_len % 2 != 0;
-    let mut blake_len = address_len / 2;
-    if hash_is_bigger {
-        blake_len += 1;
-    };
-    let hash = hash(name, blake_len);
-    let address_hash = if hash_is_bigger {
-        &hash[..hash.len()]
-    } else {
-        hash.as_str()
-    };
+    // the total number of characters we need by 2. However, to fully
+    // utilise the address space available to us, if this leaves a
+    // remainder (which will aways be 1) we add it back to output length
+    // and then discard the last character of the resulting hash.
+    let blake_len = (address_len / 2) + (address_len % 2);
+    let address_hash = hash(name, blake_len);
     let ip_hash = format!("{}{}", network_hash, address_hash);
     let ip = format!("{}:{}:{}:{}:{}:{}:{}:{}",
                      &ip_hash[0..4],
