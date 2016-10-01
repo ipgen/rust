@@ -15,7 +15,7 @@ IPGen is a library for generating unique and reproducible IP addresses in [Rust]
 Add `ipgen` as a dependency in your `Cargo.toml` file.
 ```toml
 [dependencies]
-ipgen = "0.0.3"
+ipgen = "0.0.4"
 ```
 
 Use it in your program as follows:-
