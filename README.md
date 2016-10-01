@@ -12,7 +12,7 @@ IPGen is a library for generating unique and reproducible IP addresses in [Rust]
 
 ## Getting Started
 
-Add `ipgen` as a dependancy in your `Cargo.toml` file.
+Add `ipgen` as a dependency in your `Cargo.toml` file.
 ```toml
 [dependencies]
 ipgen = "0.0.3"
