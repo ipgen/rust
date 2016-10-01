@@ -14,7 +14,7 @@ use crypto::blake2b::Blake2b;
 use crypto::digest::Digest;
 use ipnetwork::{Ipv4Network, Ipv6Network};
 
-/// Generates an IPv6 address
+/// Generates an IP address
 ///
 /// Takes any string and a IPv4 or IPv6 network local address
 /// eg `fd52:f6b0:3162::/64` or `10.0.0.0/8` and computes a unique IP address.
@@ -114,7 +114,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr, String> {
         .map_err(|err| format!("generated IPv6 address ({}) has {}", ip, err))
 }
 
-/// Calculates returns a subnet ID for any identifier
+/// Computes a subnet ID for any identifier
 pub fn subnet(name: &str) -> String {
     hash(name, 2)
 }
