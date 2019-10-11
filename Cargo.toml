@@ -10,5 +10,5 @@ keywords = ["IP", "IPv6"]
 authors = ["Rushmore <rushmore@webenchanter.com>"]
 
 [dependencies]
-rust-crypto = "0.2.36"
+blake2 = "0.8.1"
 ipnetwork = "0.10.0"
