@@ -7,13 +7,13 @@
 //! It exposes only two simple functions `ip` and `subnet`.
 //!
 //! [IPGen Spec]: https://github.com/ipgen/spec
-extern crate crypto;
+extern crate blake2;
 extern crate ipnetwork;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
-use crypto::blake2b::Blake2b;
-use crypto::digest::Digest;
+use blake2::VarBlake2b;
+use blake2::digest::{Input, VariableOutput};
 use ipnetwork::{Ipv4Network, Ipv6Network};
 
 /// Generates an IP address
@@ -129,7 +129,7 @@ pub fn subnet(name: &str) -> String {
 }
 
 fn hash(name: &str, len: usize) -> String {
-    let mut hash = Blake2b::new(len);
-    hash.input_str(name);
-    hash.result_str()
+    let mut hash = VarBlake2b::new(len).unwrap();
+    hash.input(name);
+    hash.vec_result().iter().map(|v| format!("{:02x}", v)).collect()
 }
