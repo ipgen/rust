@@ -15,20 +15,21 @@ IPGen is a library for generating unique and reproducible IP addresses in [Rust]
 Add `ipgen` as a dependency in your `Cargo.toml` file.
 ```toml
 [dependencies]
-ipgen = "0.0.5"
+ipgen = "1"
 ```
 
 Use it in your program as follows:-
 
 ```rust
-fn main() {
+fn main() -> ipgen::Result<()> {
   // Compute subnet ID
-  let subnet = ipgen::subnet("App 1"); 
-  assert_eq!("ba3d".to_string(), subnet);
+  let subnet = ipgen::subnet("App 1")?; 
+  assert_eq!(subnet, "ba3d");
   
   // Or compute an IPv6 address
   // Note you can also pass in an IPv4 network to generate an IPv4
-  let ip = ipgen::ip("App 1", "fd52:f6b0:3162::/48").unwrap();
-  assert_eq!("fd52:f6b0:3162:46a1:2a4f:89e8:8aed:1327".to_string(), ip.to_string());
+  let network = "fd52:f6b0:3162::/48".parse()?;
+  let ip = ipgen::ip("App 1", network)?;
+  assert_eq!(ip.to_string(), "fd52:f6b0:3162:46a1:2a4f:89e8:8aed:1327");
 }
 ```

@@ -1,10 +1,10 @@
 [package]
 name = "ipgen"
 description = "A library for generating unique and reproducible IP addresses"
-version = "0.0.6-alpha.0"
+version = "1.0.0-alpha.0"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/ipgen/rust"
-documentation = "https://docs.rs/ipgen/0.0.4"
+documentation = "https://docs.rs/ipgen"
 readme = "README.md"
 keywords = ["IP", "IPv6"]
 authors = ["Rushmore <rushmore@webenchanter.com>"]
@@ -12,4 +12,4 @@ edition = "2018"
 
 [dependencies]
 blake2 = { version = "0.9.1", default-features = false }
-ipnetwork = "0.17.0"
+ipnetwork = { version = "0.17.0", default-features = false }
