@@ -31,5 +31,7 @@ fn main() -> ipgen::Result<()> {
   let network = "fd52:f6b0:3162::/48".parse()?;
   let ip = ipgen::ip("App 1", network)?;
   assert_eq!(ip.to_string(), "fd52:f6b0:3162:46a1:2a4f:89e8:8aed:1327");
+
+  Ok(())
 }
 ```
