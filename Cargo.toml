@@ -8,7 +8,8 @@ documentation = "https://docs.rs/ipgen/0.0.4"
 readme = "README.md"
 keywords = ["IP", "IPv6"]
 authors = ["Rushmore <rushmore@webenchanter.com>"]
+edition = "2018"
 
 [dependencies]
-blake2 = "0.8.1"
-ipnetwork = "0.10.0"
+blake2 = { version = "0.9.1", default-features = false }
+ipnetwork = "0.17.0"
