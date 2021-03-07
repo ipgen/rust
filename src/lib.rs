@@ -18,7 +18,7 @@ use std::str::FromStr;
 /// Takes any string and a IPv4 or IPv6 network local address
 /// eg `fd52:f6b0:3162::/64` or `10.0.0.0/8` and computes a unique IP address.
 pub fn ip(name: &str, cidr: &str) -> Result<IpAddr, String> {
-    let ip_addr = match IpAddr::from_str(cidr.split("/").collect::<Vec<&str>>()[0])
+    let ip_addr = match IpAddr::from_str(cidr.split('/').collect::<Vec<&str>>()[0])
         .map_err(|err| err.to_string())
     {
         Ok(ip_addr) => ip_addr,
@@ -26,60 +26,53 @@ pub fn ip(name: &str, cidr: &str) -> Result<IpAddr, String> {
     };
     match ip_addr {
         // handle IPv6 address
-        IpAddr::V6(_) => {
-            match Ipv6Network::from_str(cidr).map_err(|err| format!("{:?}", err)) {
-                Ok(net) => {
-                    if net.prefix() == 128 {
-                        return Err(format!(
-                            "{}/{} is already a full IPv6 address",
-                            net.ip(),
-                            net.prefix()
-                        ));
-                    };
-                    return ip6(name, net).map(|ip| IpAddr::V6(ip));
-                }
-                Err(msg) => return Err(msg),
-            };
-        }
+        IpAddr::V6(_) => match Ipv6Network::from_str(cidr).map_err(|err| format!("{:?}", err)) {
+            Ok(net) => {
+                if net.prefix() == 128 {
+                    return Err(format!(
+                        "{}/{} is already a full IPv6 address",
+                        net.ip(),
+                        net.prefix()
+                    ));
+                };
+                ip6(name, net).map(IpAddr::V6)
+            }
+            Err(msg) => Err(msg),
+        },
         // handle IPv4 address
-        IpAddr::V4(_) => {
-            match Ipv4Network::from_str(cidr).map_err(|err| format!("{:?}", err)) {
-                Ok(net) => {
-                    if net.prefix() == 32 {
-                        return Err(format!(
-                            "{}/{} is already a full IPv4 address",
-                            net.ip(),
-                            net.prefix()
-                        ));
-                    };
-                    let ip6prefix = 128 - 32 + net.prefix();
-                    let ip6net = format!("::{}/{}", net.ip(), ip6prefix);
-                    match Ipv6Network::from_str(ip6net.as_str()).map_err(|err| format!("{:?}", err))
-                    {
-                        Ok(net) => match ip6(name, net) {
-                            Ok(a) => {
-                                let a = a.to_string();
-                                let addr = a.split("::").collect::<Vec<&str>>()[1];
-                                match Ipv4Addr::from_str(addr) {
-                                    Ok(ip) => return Ok(IpAddr::V4(ip)),
-                                    Err(msg) => {
-                                        return Err(format!(
-                                            "generated IPv4 address ({}) has \
+        IpAddr::V4(_) => match Ipv4Network::from_str(cidr).map_err(|err| format!("{:?}", err)) {
+            Ok(net) => {
+                if net.prefix() == 32 {
+                    return Err(format!(
+                        "{}/{} is already a full IPv4 address",
+                        net.ip(),
+                        net.prefix()
+                    ));
+                };
+                let ip6prefix = 128 - 32 + net.prefix();
+                let ip6net = format!("::{}/{}", net.ip(), ip6prefix);
+                match Ipv6Network::from_str(ip6net.as_str()).map_err(|err| format!("{:?}", err)) {
+                    Ok(net) => match ip6(name, net) {
+                        Ok(a) => {
+                            let a = a.to_string();
+                            let addr = a.split("::").collect::<Vec<&str>>()[1];
+                            match Ipv4Addr::from_str(addr) {
+                                Ok(ip) => Ok(IpAddr::V4(ip)),
+                                Err(msg) => Err(format!(
+                                    "generated IPv4 address ({}) has \
                                                                 {}",
-                                            addr, msg
-                                        ))
-                                    }
-                                };
+                                    addr, msg
+                                )),
                             }
-                            Err(msg) => return Err(msg),
-                        },
-                        Err(msg) => return Err(msg),
-                    };
+                        }
+                        Err(msg) => Err(msg),
+                    },
+                    Err(msg) => Err(msg),
                 }
-                Err(msg) => return Err(msg),
-            };
-        }
-    };
+            }
+            Err(msg) => Err(msg),
+        },
+    }
 }
 
 // Generates an IPv6 address from an IPv6 network
