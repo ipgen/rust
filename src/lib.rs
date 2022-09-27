@@ -10,7 +10,7 @@
 mod error;
 
 use blake2::digest::{Update, VariableOutput};
-use blake2::VarBlake2b;
+use blake2::Blake2bVar;
 use ipnetwork::Ipv6Network;
 use std::net::{IpAddr, Ipv6Addr};
 use std::str::FromStr;
@@ -53,12 +53,12 @@ pub fn ip(name: &str, net: IpNetwork) -> Result<IpAddr> {
                 return Err(Error::PrefixTooBig(net));
             }
             let prefix = IP6_PREFIX - IP4_PREFIX + net4.prefix();
-            let net6 = format!("::{}/{}", net4.ip(), prefix).parse::<Ipv6Network>()?;
+            let net6 = format!("::{}/{prefix}", net4.ip()).parse::<Ipv6Network>()?;
             let ipv6_addr = ip6(name, net6)?.to_string();
             let ip_addr = ipv6_addr
                 .strip_prefix("::")
                 // This error should never happen but I'm not a fan of panicking in libraries
-                .ok_or_else(|| Error::InvalidIpNetwork(format!("[BUG] the generated IPv6 address `{}` does not start with the expected prefix `::`", ipv6_addr)))?
+                .ok_or_else(|| Error::InvalidIpNetwork(format!("[BUG] the generated IPv6 address `{ipv6_addr}` does not start with the expected prefix `::`")))?
                 .parse()
                 // This error should never happen but I'm not a fan of panicking in libraries
                 .map_err(|_| Error::InvalidIpNetwork(format!("[BUG] failed to parse the generated IP address `{}` as IPv4", ipv6_addr.trim_start_matches(':'))))
@@ -77,7 +77,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
     // Uncompress the IP address and throw away the semi-colons
     // so we can easily extract the network part and later
     // join it to the address part that we will compute.
-    let ip_parts: Vec<String> = ip.iter().map(|b| format!("{:04x}", b)).collect();
+    let ip_parts: Vec<String> = ip.iter().map(|b| format!("{b:04x}")).collect();
     let ip_hash = ip_parts.join("");
     let network_hash = &ip_hash[..network_len];
     // The number of characters we need to generate
@@ -108,8 +108,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
     let ip_addr = ip_str.parse().map_err(|_| {
         // This error should never happen but I'm not a fan of panicking in libraries
         Error::InvalidIpNetwork(format!(
-            "[BUG] failed to parse the generated IP string `{}` as IPv6",
-            ip_str
+            "[BUG] failed to parse the generated IP string `{ip_str}` as IPv6",
         ))
     })?;
     Ok(ip_addr)
@@ -121,20 +120,21 @@ pub fn subnet(name: &str) -> Result<String> {
 }
 
 fn hash(name: &[u8], len: usize) -> Result<String> {
-    let mut hasher = VarBlake2b::new(len)
+    let mut hasher = Blake2bVar::new(len)
         // This error should never happen but I'm not a fan of panicking in libraries
         .map_err(|_| {
             Error::InvalidIpNetwork(format!(
-                "[BUG] output length of {} resulted in an error in hash generation",
-                len
+                "[BUG] output length of {len} resulted in an error in hash generation",
             ))
         })?;
     hasher.update(name);
-    let mut hash = String::with_capacity(len * 8);
-    hasher.finalize_variable(|res| {
-        hash = res.iter().map(|v| format!("{:02x}", v)).collect();
-    });
-    Ok(hash)
+    let mut buf = vec![0u8; len];
+    hasher.finalize_variable(&mut buf).map_err(|_| {
+        Error::InvalidIpNetwork(format!(
+            "[BUG] buffer size of {len} resulted in an error in hash generation",
+        ))
+    })?;
+    Ok(buf.iter().map(|v| format!("{:02x}", v)).collect())
 }
 
 #[cfg(test)]

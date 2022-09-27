@@ -11,5 +11,5 @@ authors = ["Rushmore <rushmore@webenchanter.com>"]
 edition = "2018"
 
 [dependencies]
-blake2 = { version = "0.9.1", default-features = false }
-ipnetwork = { version = "0.17.0", default-features = false }
+blake2 = { version = "0.10.4", default-features = false }
+ipnetwork = { version = "0.20.0", default-features = false }
