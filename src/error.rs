@@ -14,6 +14,8 @@ pub enum Error {
     InvalidIpNetwork(String),
     /// Network address provided is already a full IP address
     PrefixTooBig(crate::IpNetwork),
+    /// Failed to parse string
+    ParseFailed(String),
 }
 
 impl error::Error for Error {}
@@ -21,7 +23,7 @@ impl error::Error for Error {}
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::InvalidIpNetwork(error) => write!(f, "{}", error),
+            Error::InvalidIpNetwork(error) | Error::ParseFailed(error) => write!(f, "{}", error),
             Error::PrefixTooBig(crate::IpNetwork(net)) => write!(
                 f,
                 "{}/{} is already a full IP address",

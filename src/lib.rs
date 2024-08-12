@@ -53,10 +53,10 @@ pub fn ip(name: &str, net: IpNetwork) -> Result<IpAddr> {
                 return Err(Error::PrefixTooBig(net));
             }
             let prefix = IP6_PREFIX - IP4_PREFIX + net4.prefix();
-            let net6 = format!("::{}/{prefix}", net4.ip()).parse::<Ipv6Network>()?;
+            let net6 = format!("::ffff:{}/{prefix}", net4.ip()).parse::<Ipv6Network>()?;
             let ipv6_addr = ip6(name, net6)?.to_string();
             let ip_addr = ipv6_addr
-                .strip_prefix("::")
+                .strip_prefix("::ffff:")
                 // This error should never happen but I'm not a fan of panicking in libraries
                 .ok_or_else(|| Error::InvalidIpNetwork(format!("[BUG] the generated IPv6 address `{ipv6_addr}` does not start with the expected prefix `::`")))?
                 .parse()
@@ -70,30 +70,33 @@ pub fn ip(name: &str, net: IpNetwork) -> Result<IpAddr> {
 
 // Generates an IPv6 address from an IPv6 network
 fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
-    // If we divide the prefix by 4 we will get the total number
-    // of characters that we must never touch.
-    let network_len = net.prefix() as usize / 4;
+    // Get the number of bits that will be preserved as the network prefix
+    let network_len = net.prefix() as usize;
+
+    // Convert the address to a string of binary digits
     let ip = net.ip().segments();
-    // Uncompress the IP address and throw away the semi-colons
-    // so we can easily extract the network part and later
-    // join it to the address part that we will compute.
-    let ip_parts: Vec<String> = ip.iter().map(|b| format!("{b:04x}")).collect();
-    let ip_hash = ip_parts.join("");
+    let ip_hash = ip
+        .iter()
+        .map(|chunk| format!("{:016b}", chunk))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Grab the network prefix
     let network_hash = &ip_hash[..network_len];
+
     // The number of characters we need to generate
     //
-    // * An IPv6 address has a total number of 32 (8*4) characters.
-    // * Subtracting those characters from the total in an IP address
-    //   gives us the number of characters we need to generate.
-    let address_len = 32 - network_len;
-    // Blake2b generates hashes in multiples of 2 so we need to divide
-    // the total number of characters we need by 2. However, to fully
-    // utilise the address space available to us, if this leaves a
-    // remainder (which will always be 1) we add it back to output length
-    // and then discard the last character of the resulting hash.
-    let blake_len = (address_len / 2) + (address_len % 2);
-    let address_hash = hash(name.as_bytes(), blake_len)?;
-    let ip_hash = format!("{}{}", network_hash, address_hash);
+    // * An IPv6 address has a total number of 128 bits.
+    // * Subtracting the network prefix length from the total in an IP address
+    //   gives us the number of bits we need to generate.
+    let address_len = IP6_PREFIX as usize - network_len;
+
+    // Get the hash of `name`
+    let address_hash = hash(name.as_bytes(), address_len)?;
+
+    // Join the network and address hashses, while converting it to a hex string
+    let ip_hash = to_hex(format!("{}{}", network_hash, address_hash)).unwrap();
+
     let ip_str = format!(
         "{}:{}:{}:{}:{}:{}:{}:{}",
         &ip_hash[..4],
@@ -105,6 +108,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
         &ip_hash[24..28],
         &ip_hash[28..32]
     );
+
     let ip_addr = ip_str.parse().map_err(|_| {
         // This error should never happen but I'm not a fan of panicking in libraries
         Error::InvalidIpNetwork(format!(
@@ -116,10 +120,14 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
 
 /// Computes a subnet ID for any identifier
 pub fn subnet(name: &str) -> Result<String> {
-    hash(name.as_bytes(), 2)
+    to_hex(hash(name.as_bytes(), 16)?)
 }
 
+/// Hashes a given slice of bytes (`name`) to a string of size `len`
 fn hash(name: &[u8], len: usize) -> Result<String> {
+    // Convert # of bits to # of bytes
+    let len = len / 8;
+
     let mut hasher = Blake2bVar::new(len)
         // This error should never happen but I'm not a fan of panicking in libraries
         .map_err(|_| {
@@ -134,7 +142,29 @@ fn hash(name: &[u8], len: usize) -> Result<String> {
             "[BUG] buffer size of {len} resulted in an error in hash generation",
         ))
     })?;
-    Ok(buf.iter().map(|v| format!("{:02x}", v)).collect())
+    Ok(buf.iter().fold(String::new(), |mut acc, v| {
+        acc.push_str(&format!("{:08b}", v));
+        acc
+    }))
+}
+
+/// Converts string of bits (`11111111`) to hex string (`ff`)
+pub fn to_hex(ip_str: String) -> Result<String> {
+    let hex_chars = ip_str
+        .chars()
+        .collect::<Vec<char>>()
+        .chunks(8)
+        .map(|chunk| {
+            let binary_num = u8::from_str_radix(&chunk.iter().collect::<String>(), 2)
+                .map_err(|_| {
+                    Error::ParseFailed("Failed to convert binary string to u8".to_string())
+                })
+                .unwrap();
+            format!("{:02x}", binary_num)
+        })
+        .collect::<Vec<String>>()
+        .join("");
+    Ok(hex_chars)
 }
 
 #[cfg(test)]
@@ -164,6 +194,12 @@ mod tests {
             .unwrap()
             .to_string();
         assert_eq!(ip, "fd9d:bb35:94bf:6fa1:d8fc:fd71:9046:d762");
+
+        // an odd prefix length
+        let ip = crate::ip("test", "fc00::/7".parse().unwrap())
+            .unwrap()
+            .to_string();
+        assert_eq!(ip, "fdfb:c7cb:354d:e09d:badb:9adf:7441:561f");
     }
 
     #[test]
