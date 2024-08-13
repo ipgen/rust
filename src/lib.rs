@@ -68,7 +68,7 @@ fn ip6(name: &str, net: Ipv6Network) -> Result<Ipv6Addr> {
     // Convert the address to a u128
     let network_hash = net.ip().to_bits();
 
-    // The number of bit characters we need to generate
+    // The number of bits we need to generate
     //
     // * An IPv6 address has a total number of 128 bits.
     // * Subtracting the network prefix length from the total in an IP address
