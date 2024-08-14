@@ -54,32 +54,9 @@ pub fn ip(name: &str, net: IpNetwork) -> Result<IpAddr> {
                 let net6 = Ipv6Network::new(net4.ip().to_ipv6_mapped(), prefix)?;
                 Ok(IpAddr::V4(ip6(name, net6)?.to_ipv4_mapped().unwrap()))
             }
-<<<<<<< HEAD
             Equal => Ok(IpAddr::V4(net4.ip())),
             Greater => Err(Error::PrefixTooBig(net)),
         },
-=======
-            ip6(name, net6).map(IpAddr::V6)
-        }
-        // handle IPv4 address
-        ipnetwork::IpNetwork::V4(net4) => {
-            if net4.prefix() == IP4_PREFIX {
-                return Err(Error::PrefixTooBig(net));
-            }
-            let prefix = IP6_PREFIX - IP4_PREFIX + net4.prefix();
-            let net6 = format!("::ffff:{}/{prefix}", net4.ip()).parse::<Ipv6Network>()?;
-            let ipv6_addr = ip6(name, net6)?.to_string();
-            let ip_addr = ipv6_addr
-                .strip_prefix("::ffff:")
-                // This error should never happen but I'm not a fan of panicking in libraries
-                .ok_or_else(|| Error::InvalidIpNetwork(format!("[BUG] the generated IPv6 address `{ipv6_addr}` does not start with the expected prefix `::`")))?
-                .parse()
-                // This error should never happen but I'm not a fan of panicking in libraries
-                .map_err(|_| Error::InvalidIpNetwork(format!("[BUG] failed to parse the generated IP address `{}` as IPv4", ipv6_addr.trim_start_matches(':'))))
-                ?;
-            Ok(IpAddr::V4(ip_addr))
-        }
->>>>>>> main
     }
 }
 
